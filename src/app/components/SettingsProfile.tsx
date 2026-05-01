@@ -6,13 +6,12 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
-import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { 
   User, 
   Download, 
   Cloud, 
   Settings, 
-  Palette, 
   Bell, 
   Shield, 
   CreditCard,
@@ -23,299 +22,302 @@ import {
   FileText,
   Database,
   Moon,
-  Sun
+  Sun,
+  Wallet,
+  Globe,
+  Coins,
+  Share2,
+  Table,
+  Check,
+  X
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
-
-const customCategories = [
-  { id: 1, name: 'Coffee & Drinks', icon: '☕', color: '#FF6B6B', transactions: 15 },
-  { id: 2, name: 'Gym & Fitness', icon: '💪', color: '#4ECDC4', transactions: 8 },
-  { id: 3, name: 'Pet Expenses', icon: '🐕', color: '#45B7D1', transactions: 12 },
-  { id: 4, name: 'Books & Learning', icon: '📚', color: '#96CEB4', transactions: 5 }
-];
+import { toast } from 'sonner';
+import { useExpenses, Category } from '../context/ExpenseContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 
 export function SettingsProfile() {
-  const [darkMode, setDarkMode] = useState(false);
+  const { 
+    expenses, budget, updateBudget, categories, 
+    addCategory, updateCategory, deleteCategory,
+    currency, setCurrency, 
+    language, setLanguage, 
+    theme, setTheme,
+    t, formatCurrency 
+  } = useExpenses();
+  
   const [notifications, setNotifications] = useState(true);
-  const [budgetAlerts, setBudgetAlerts] = useState(true);
-  const [monthlyBudget, setMonthlyBudget] = useState('4000');
   const [userName, setUserName] = useState('John Doe');
   const [userEmail, setUserEmail] = useState('john.doe@example.com');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const handleExportCSV = () => {
-    toast.success('Expense data exported to CSV successfully!');
+  // Category CRUD State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('💰');
+  const [newCatColor, setNewCatColor] = useState('#6366f1');
+
+  const handleOpenCategoryModal = (cat?: Category) => {
+    if (cat) {
+      setEditingCategory(cat);
+      setNewCatName(cat.name);
+      setNewCatIcon(cat.icon);
+      setNewCatColor(cat.color);
+    } else {
+      setEditingCategory(null);
+      setNewCatName('');
+      setNewCatIcon('💰');
+      setNewCatColor('#6366f1');
+    }
+    setIsCategoryModalOpen(true);
   };
 
-  const handleExportPDF = () => {
-    toast.success('Monthly report exported to PDF successfully!');
+  const handleSaveCategory = () => {
+    if (!newCatName) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    if (editingCategory) {
+      updateCategory(editingCategory.id, { name: newCatName, icon: newCatIcon, color: newCatColor });
+    } else {
+      addCategory({ name: newCatName, icon: newCatIcon, color: newCatColor });
+    }
+    setIsCategoryModalOpen(false);
   };
 
-  const handleBackupData = () => {
-    toast.success('Data backed up to Google Drive successfully!');
+  const exportToCSV = () => {
+    const headers = ['Date', 'Description', 'Category', 'Amount', 'Payment Method', 'Notes'];
+    const rows = expenses.map(e => [
+      e.date,
+      e.description,
+      categories.find(c => c.id === e.category)?.name || e.category,
+      e.amount,
+      e.paymentMethod,
+      e.notes || ''
+    ]);
+
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `SpendWise_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Data exported as CSV successfully!');
   };
 
-  const handleSyncData = () => {
-    toast.success('Data synced with cloud storage!');
-  };
-
-  const handleDeleteCategory = (categoryId: number) => {
-    toast.success('Category deleted successfully!');
+  const handleGoogleSheetsSync = () => {
+    setIsSyncing(true);
+    toast.loading('Syncing with Google Sheets...');
+    setTimeout(() => {
+      setIsSyncing(false);
+      toast.dismiss();
+      toast.success('Data integrated with Google Sheets!');
+    }, 2000);
   };
 
   return (
-    <div className="p-4 space-y-6 pb-20">
+    <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-10">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl">Settings</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{t('settings')}</h1>
+          <p className="text-muted-foreground font-medium">Manage your account and app preferences.</p>
+        </div>
+        <Button onClick={exportToCSV} className="bg-primary rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2">
+          <Download className="h-5 w-5" />
+          Export All Data
+        </Button>
       </div>
 
-      {/* Profile Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profile
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                className="mt-1"
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Export & Sync Section */}
+          <Card className="rounded-[2.5rem] border border-border/50 bg-card overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-lg font-bold">
+                <Share2 className="h-5 w-5 text-primary" />
+                Export & Integrations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Button variant="outline" onClick={exportToCSV} className="h-32 flex-col gap-3 rounded-3xl border-2 border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                  <div className="p-3 bg-accent rounded-2xl"><FileText className="h-8 w-8 text-primary" /></div>
+                  <span className="font-bold">Export CSV</span>
+                </Button>
+                <Button variant="outline" className="h-32 flex-col gap-3 rounded-3xl border-2 border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all opacity-50">
+                  <div className="p-3 bg-accent rounded-2xl"><FileText className="h-8 w-8 text-primary" /></div>
+                  <span className="font-bold">Export PDF</span>
+                </Button>
+              </div>
+              
+              <Separator className="bg-border/30" />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-6 bg-accent/20 rounded-[2rem] border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center">
+                      <Table className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg">Google Sheets Sync</p>
+                      <p className="text-xs text-muted-foreground font-medium">Automatic cloud integration</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-500 text-white border-none rounded-lg font-bold">Connected</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={handleGoogleSheetsSync} disabled={isSyncing} className="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-2">
+                    <Cloud className="h-4 w-4" />
+                    Sync Data
+                  </Button>
+                  <Button variant="outline" className="h-12 rounded-xl border-border/50 font-bold">Disconnect</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Categories CRUD Section */}
+          <Card className="rounded-[2.5rem] border border-border/50 bg-card overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-3 text-lg font-bold">
+                <Tags className="h-5 w-5 text-primary" />
+                Custom Categories
+              </CardTitle>
+              <Button onClick={() => handleOpenCategoryModal()} size="icon" className="rounded-xl h-10 w-10 bg-primary shadow-lg shadow-primary/20">
+                <Plus className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex items-center gap-4 p-4 bg-accent/10 rounded-2xl border border-border/30 group hover:bg-accent/20 transition-all">
+                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                    {cat.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold">{cat.name}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      {expenses.filter(e => e.category === cat.id).length} transactions
+                    </p>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button onClick={() => handleOpenCategoryModal(cat)} variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-white text-blue-500"><Edit3 className="h-4 w-4" /></Button>
+                    <Button onClick={() => deleteCategory(cat.id)} variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-red-50 text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+           <Card className="p-6 rounded-[2rem] border border-border/50 bg-card">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <Avatar className="h-24 w-24 border-4 border-accent shadow-xl">
+                  <AvatarFallback className="bg-primary text-white text-3xl font-black">JD</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-bold">{userName}</h3>
+                  <p className="text-sm font-medium text-muted-foreground">{userEmail}</p>
+                </div>
+                <Button variant="outline" className="w-full rounded-xl border-border/50 font-bold">Edit Profile</Button>
+              </div>
+           </Card>
+
+           <Card className="p-6 rounded-[2rem] border border-border/50 bg-accent/10">
+            <CardTitle className="flex items-center gap-3 text-lg font-bold mb-6">
+              <Globe className="h-5 w-5 text-primary" />
+              Regional
+            </CardTitle>
+            <div className="space-y-4">
+               <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest px-1">Language</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant={language === 'en' ? 'default' : 'outline'} onClick={() => setLanguage('en')} className="rounded-xl h-12 font-bold">EN</Button>
+                    <Button variant={language === 'id' ? 'default' : 'outline'} onClick={() => setLanguage('id')} className="rounded-xl h-12 font-bold">ID</Button>
+                  </div>
+               </div>
+               <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest px-1">Currency</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant={currency === 'USD' ? 'default' : 'outline'} onClick={() => setCurrency('USD')} className="rounded-xl h-12 font-bold">USD</Button>
+                    <Button variant={currency === 'IDR' ? 'default' : 'outline'} onClick={() => setCurrency('IDR')} className="rounded-xl h-12 font-bold">IDR</Button>
+                  </div>
+               </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 rounded-[2rem] border border-border/50 bg-accent/10">
+            <div className="flex items-center justify-between mb-6">
+               <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-yellow-100 text-yellow-600'}`}>
+                    {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  </div>
+                  <span className="font-bold">{t('theme')}</span>
+               </div>
+               <Switch checked={theme === 'dark'} onCheckedChange={(val) => setTheme(val ? 'dark' : 'light')} />
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Category Modal */}
+      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+        <DialogContent className="rounded-3xl border-none p-8 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Category Name</Label>
+              <Input 
+                value={newCatName} 
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="e.g. Subscriptions"
+                className="h-12 rounded-xl bg-accent/20 border-none font-bold"
               />
             </div>
-          </div>
-          <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={userEmail}
-              onChange={(e) => setUserEmail(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="budget">Monthly Budget ($)</Label>
-            <Input
-              id="budget"
-              type="number"
-              value={monthlyBudget}
-              onChange={(e) => setMonthlyBudget(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Data Export */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Data
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={handleExportCSV} className="h-16 flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>Export CSV</span>
-            </Button>
-            <Button variant="outline" onClick={handleExportPDF} className="h-16 flex-col gap-2">
-              <FileText className="h-6 w-6" />
-              <span>Export PDF</span>
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Export your expense data for backup or analysis in other tools.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Cloud Sync */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            Sync & Backup
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Database className="h-5 w-5 text-blue-600" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Icon (Emoji)</Label>
+                <Input 
+                  value={newCatIcon} 
+                  onChange={(e) => setNewCatIcon(e.target.value)}
+                  placeholder="💰"
+                  className="h-12 rounded-xl bg-accent/20 border-none text-center text-2xl"
+                />
               </div>
-              <div>
-                <p className="font-medium">Google Drive Backup</p>
-                <p className="text-sm text-muted-foreground">Last backup: 2 hours ago</p>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Brand Color</Label>
+                <div className="flex gap-2 items-center">
+                  <Input 
+                    type="color"
+                    value={newCatColor} 
+                    onChange={(e) => setNewCatColor(e.target.value)}
+                    className="h-12 w-12 rounded-xl bg-accent/20 border-none p-1 cursor-pointer"
+                  />
+                  <Input 
+                    value={newCatColor} 
+                    onChange={(e) => setNewCatColor(e.target.value)}
+                    className="h-12 flex-1 rounded-xl bg-accent/20 border-none font-mono text-xs font-bold"
+                  />
+                </div>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Connected
-            </Badge>
           </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={handleBackupData}>
-              <Cloud className="h-4 w-4 mr-2" />
-              Backup Now
-            </Button>
-            <Button variant="outline" onClick={handleSyncData}>
-              <Database className="h-4 w-4 mr-2" />
-              Sync Data
-            </Button>
-          </div>
-          
-          <p className="text-sm text-muted-foreground">
-            Your data is automatically backed up to Google Drive and synced across devices.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Category Management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Tags className="h-5 w-5" />
-              Custom Categories
-            </CardTitle>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Category
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {customCategories.map((category) => (
-            <div key={category.id} className="flex items-center gap-3 p-3 border rounded-lg">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                style={{ backgroundColor: category.color }}
-              >
-                <span className="text-lg">{category.icon}</span>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">{category.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {category.transactions} transactions
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleDeleteCategory(category.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* App Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                {darkMode ? <Moon className="h-5 w-5 text-purple-600" /> : <Sun className="h-5 w-5 text-purple-600" />}
-              </div>
-              <div>
-                <p className="font-medium">Dark Mode</p>
-                <p className="text-sm text-muted-foreground">Switch to dark theme</p>
-              </div>
-            </div>
-            <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Bell className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="font-medium">Push Notifications</p>
-                <p className="text-sm text-muted-foreground">Get notified about expenses</p>
-              </div>
-            </div>
-            <Switch checked={notifications} onCheckedChange={setNotifications} />
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <Shield className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="font-medium">Budget Alerts</p>
-                <p className="text-sm text-muted-foreground">Alert when overspending</p>
-              </div>
-            </div>
-            <Switch checked={budgetAlerts} onCheckedChange={setBudgetAlerts} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Security & Privacy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full justify-start">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Manage Payment Methods
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            <Shield className="h-4 w-4 mr-2" />
-            Change Password
-          </Button>
-          <Button variant="outline" className="w-full justify-start">
-            <User className="h-4 w-4 mr-2" />
-            Privacy Settings
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* App Info */}
-      <Card>
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-muted-foreground mb-2">ExpenseTracker v2.1.0</p>
-          <div className="flex justify-center gap-4 text-sm">
-            <Button variant="ghost" size="sm">Terms of Service</Button>
-            <Button variant="ghost" size="sm">Privacy Policy</Button>
-            <Button variant="ghost" size="sm">Help Center</Button>
-          </div>
-        </CardContent>
-      </Card>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsCategoryModalOpen(false)} className="rounded-xl font-bold">Cancel</Button>
+            <Button onClick={handleSaveCategory} className="rounded-xl font-bold px-8 bg-primary">Save Category</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

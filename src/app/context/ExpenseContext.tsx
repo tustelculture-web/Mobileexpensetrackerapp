@@ -1,0 +1,194 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
+
+export type Category = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+};
+
+export type Expense = {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+  paymentMethod: string;
+  notes?: string;
+};
+
+type ExpenseContextType = {
+  expenses: Expense[];
+  categories: Category[];
+  budget: number;
+  currency: 'USD' | 'IDR';
+  language: 'en' | 'id';
+  theme: 'light' | 'dark';
+  addExpense: (expense: Omit<Expense, 'id'>) => void;
+  deleteExpense: (id: string) => void;
+  updateBudget: (amount: number) => void;
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, category: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
+  setCurrency: (c: 'USD' | 'IDR') => void;
+  setLanguage: (l: 'en' | 'id') => void;
+  setTheme: (t: 'light' | 'dark') => void;
+  t: (key: string) => string;
+  formatCurrency: (amount: number) => string;
+};
+
+const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
+
+const initialCategories: Category[] = [
+  { id: '1', name: 'Food & Dining', icon: '🍔', color: '#ef4444' },
+  { id: '2', name: 'Transportation', icon: '🚗', color: '#06b6d4' },
+  { id: '3', name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
+  { id: '4', name: 'Bills & Utilities', icon: '📄', color: '#10b981' },
+  { id: '5', name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
+  { id: '6', name: 'Health', icon: '🏥', color: '#ec4899' },
+];
+
+const translations = {
+  en: {
+    dashboard: 'Dashboard',
+    analytics: 'Analytics',
+    history: 'History',
+    settings: 'Settings',
+    add_expense: 'Add Expense',
+    total_spent: 'Total Spent This Month',
+    budget: 'Monthly Budget',
+    recent_activities: 'Recent Activities',
+    category: 'Category',
+    amount: 'Amount',
+    description: 'Description',
+    date: 'Date',
+    payment_method: 'Payment Method',
+    theme: 'App Theme',
+    welcome: 'Welcome back!',
+    summary: 'Summary',
+  },
+  id: {
+    dashboard: 'Dasbor',
+    analytics: 'Analisis',
+    history: 'Riwayat',
+    settings: 'Pengaturan',
+    add_expense: 'Tambah Pengeluaran',
+    total_spent: 'Total Pengeluaran Bulan Ini',
+    budget: 'Anggaran Bulanan',
+    recent_activities: 'Aktivitas Terbaru',
+    category: 'Kategori',
+    amount: 'Jumlah',
+    description: 'Deskripsi',
+    date: 'Tanggal',
+    payment_method: 'Metode Pembayaran',
+    theme: 'Tema Aplikasi',
+    welcome: 'Selamat datang kembali!',
+    summary: 'Ringkasan',
+  },
+};
+
+export function ExpenseProvider({ children }: { children: React.ReactNode }) {
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('expenses');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', description: 'Dinner', amount: 50, category: '1', date: '2026-05-01', paymentMethod: 'Credit' },
+      { id: '2', description: 'Uber Ride', amount: 18.75, category: '2', date: '2025-01-30', paymentMethod: 'Debit' },
+      { id: '3', description: 'Netflix Subscription', amount: 15.99, category: '4', date: '2025-01-29', paymentMethod: 'Digital' },
+    ];
+  });
+
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const saved = localStorage.getItem('categories');
+    return saved ? JSON.parse(saved) : initialCategories;
+  });
+
+  const [budget, setBudget] = useState(() => {
+    const saved = localStorage.getItem('budget');
+    return saved ? Number(saved) : 4000;
+  });
+
+  const [currency, setCurrency] = useState<'USD' | 'IDR'>(() => {
+    return (localStorage.getItem('currency') as 'USD' | 'IDR') || 'USD';
+  });
+
+  const [language, setLanguage] = useState<'en' | 'id'>(() => {
+    return (localStorage.getItem('language') as 'en' | 'id') || 'en';
+  });
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    localStorage.setItem('categories', JSON.stringify(categories));
+    localStorage.setItem('budget', budget.toString());
+    localStorage.setItem('currency', currency);
+    localStorage.setItem('language', language);
+    localStorage.setItem('theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [expenses, categories, budget, currency, language, theme]);
+
+  const addExpense = (expense: Omit<Expense, 'id'>) => {
+    const newExpense = { ...expense, id: Math.random().toString(36).substr(2, 9) };
+    setExpenses([newExpense, ...expenses]);
+    toast.success('Expense added successfully');
+  };
+
+  const deleteExpense = (id: string) => {
+    setExpenses(expenses.filter(e => e.id !== id));
+    toast.success('Expense deleted');
+  };
+
+  const updateBudget = (amount: number) => {
+    setBudget(amount);
+    toast.success('Budget updated');
+  };
+
+  const addCategory = (cat: Omit<Category, 'id'>) => {
+    const newCat = { ...cat, id: Math.random().toString(36).substr(2, 9) };
+    setCategories([...categories, newCat]);
+    toast.success('Category added');
+  };
+
+  const updateCategory = (id: string, updates: Partial<Category>) => {
+    setCategories(categories.map(c => c.id === id ? { ...c, ...updates } : c));
+    toast.success('Category updated');
+  };
+
+  const deleteCategory = (id: string) => {
+    if (expenses.some(e => e.category === id)) {
+      toast.error('Cannot delete category with associated expenses');
+      return;
+    }
+    setCategories(categories.filter(c => c.id !== id));
+    toast.success('Category deleted');
+  };
+
+  const t = (key: string) => translations[language][key as keyof typeof translations['en']] || key;
+
+  const formatCurrency = (amount: number) => {
+    if (currency === 'IDR') {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    }
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
+  return (
+    <ExpenseContext.Provider value={{ 
+      expenses, categories, budget, currency, language, theme,
+      addExpense, deleteExpense, updateBudget,
+      addCategory, updateCategory, deleteCategory,
+      setCurrency, setLanguage, setTheme, t, formatCurrency 
+    }}>
+      {children}
+    </ExpenseContext.Provider>
+  );
+}
+
+export const useExpenses = () => {
+  const context = useContext(ExpenseContext);
+  if (!context) throw new Error('useExpenses must be used within ExpenseProvider');
+  return context;
+};

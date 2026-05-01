@@ -1,148 +1,110 @@
-import React, { useState } from 'react';
-import { DashboardMockup } from './components/mockups/DashboardMockup';
-import { AddExpenseMockup } from './components/mockups/AddExpenseMockup';
-import { AnalyticsMockup } from './components/mockups/AnalyticsMockup';
-import { SearchMockup } from './components/mockups/SearchMockup';
-import { SettingsMockup } from './components/mockups/SettingsMockup';
-import { Button } from './components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import { ExpenseProvider, useExpenses } from './context/ExpenseContext';
+import { Dashboard } from './components/Dashboard';
+import { AddExpense } from './components/AddExpense';
+import { Analytics } from './components/Analytics';
+import { SearchFilter } from './components/SearchFilter';
+import { SettingsProfile } from './components/SettingsProfile';
+import { LayoutDashboard, PlusCircle, BarChart3, Search, Settings, Wallet } from 'lucide-react';
+import { Toaster } from './components/ui/sonner';
 
-const mockups = [
-  { id: 'dashboard', name: 'Dashboard', component: DashboardMockup },
-  { id: 'add', name: 'Add Expense', component: AddExpenseMockup },
-  { id: 'analytics', name: 'Analytics', component: AnalyticsMockup },
-  { id: 'search', name: 'Search & Filter', component: SearchMockup },
-  { id: 'settings', name: 'Settings', component: SettingsMockup }
-];
-
-export default function App() {
-  const [currentMockup, setCurrentMockup] = useState(0);
-  const CurrentMockupComponent = mockups[currentMockup].component;
-
-  const nextMockup = () => {
-    setCurrentMockup((prev) => (prev + 1) % mockups.length);
-  };
-
-  const prevMockup = () => {
-    setCurrentMockup((prev) => (prev - 1 + mockups.length) % mockups.length);
-  };
+const Navigation = () => {
+  const { t } = useExpenses();
+  const navItems = [
+    { icon: <LayoutDashboard className="h-5 w-5" />, label: t('dashboard'), path: '/' },
+    { icon: <PlusCircle className="h-5 w-5" />, label: t('add_expense'), path: '/add' },
+    { icon: <BarChart3 className="h-5 w-5" />, label: t('analytics'), path: '/analytics' },
+    { icon: <Search className="h-5 w-5" />, label: t('search'), path: '/search' },
+    { icon: <Settings className="h-5 w-5" />, label: t('settings'), path: '/settings' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-slate-800 mb-2">
-          Expense Tracker Mobile App
-        </h1>
-        <p className="text-lg text-slate-600 mb-6">
-          Modern UI Mockups for Mobile Expense Management
-        </p>
-        
-        {/* Navigation */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={prevMockup}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          
-          <div className="text-center">
-            <p className="font-medium text-slate-800">
-              {mockups[currentMockup].name}
-            </p>
-            <p className="text-sm text-slate-500">
-              {currentMockup + 1} of {mockups.length}
-            </p>
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64 glass-nav h-screen sticky top-0 p-6 z-40">
+        <div className="flex items-center gap-3 mb-10 px-2">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+            <Wallet className="h-6 w-6" />
           </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={nextMockup}
-            className="flex items-center gap-2"
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            SpendWise
+          </h1>
         </div>
-      </div>
-
-      {/* Mobile Frame */}
-      <div className="flex justify-center">
-        <div className="relative">
-          {/* Phone Frame */}
-          <div className="w-[375px] h-[812px] bg-black rounded-[3rem] p-2 shadow-2xl">
-            {/* Screen */}
-            <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
-              {/* Status Bar */}
-              <div className="h-11 bg-white flex items-center justify-between px-8 text-black text-sm font-medium relative z-10">
-                <span>9:41</span>
-                <div className="w-6 h-3 bg-black rounded-sm"></div>
-                <div className="flex items-center gap-1">
-                  <div className="w-6 h-3 border border-black rounded-sm">
-                    <div className="w-4 h-1 bg-black rounded-full mt-1 ml-0.5"></div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Content */}
-              <div className="h-[calc(100%-44px)] overflow-hidden">
-                <CurrentMockupComponent />
-              </div>
-            </div>
-          </div>
-
-          {/* Phone Details */}
-          <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
-            <p className="text-sm text-slate-500">iPhone 14 Pro - 375×812</p>
-          </div>
+        <nav className="space-y-2 flex-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                }`
+              }
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto p-4 bg-accent/50 rounded-2xl border border-border/50">
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">PRO PLAN</p>
+          <p className="text-sm font-bold mb-3">Unlimited Insights</p>
+          <button className="w-full py-2 bg-primary text-white rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">
+            Upgrade
+          </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Mockup Indicators */}
-      <div className="flex justify-center gap-2 mt-16">
-        {mockups.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentMockup(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              index === currentMockup 
-                ? 'bg-slate-800 scale-110' 
-                : 'bg-slate-400 hover:bg-slate-600'
-            }`}
-          />
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass-nav px-4 py-2 flex justify-around items-center z-50">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 p-2 transition-all duration-200 ${
+                isActive ? 'text-primary scale-110' : 'text-muted-foreground opacity-70'
+              }`
+            }
+          >
+            {item.icon}
+            <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+          </NavLink>
         ))}
-      </div>
+      </nav>
+    </>
+  );
+};
 
-      {/* Features List */}
-      <div className="max-w-4xl mx-auto mt-16 grid md:grid-cols-2 gap-8">
-        <div>
-          <h3 className="text-xl font-semibold text-slate-800 mb-4">Key Features</h3>
-          <ul className="space-y-2 text-slate-600">
-            <li>• Monthly spending summary with visual progress</li>
-            <li>• Interactive pie charts for category breakdown</li>
-            <li>• AI-powered receipt scanning & auto-categorization</li>
-            <li>• Natural language search ("Show coffee expenses")</li>
-            <li>• Smart budget alerts and overspending warnings</li>
-            <li>• Detailed analytics with trend charts</li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-slate-800 mb-4">Design Highlights</h3>
-          <ul className="space-y-2 text-slate-600">
-            <li>• Clean, minimalist material design</li>
-            <li>• Large touch targets for mobile usability</li>
-            <li>• Intuitive bottom navigation</li>
-            <li>• AI features clearly marked with icons</li>
-            <li>• Responsive cards and smooth animations</li>
-            <li>• Accessible color contrast and typography</li>
-          </ul>
-        </div>
+const AppContent = () => {
+  return (
+    <Router>
+      <div className="flex min-h-screen bg-background transition-colors duration-500">
+        <Navigation />
+        <main className="flex-1 w-full max-w-6xl mx-auto md:p-8 pb-24 md:pb-8">
+          <div className="glass-card md:rounded-[2.5rem] min-h-full overflow-hidden transition-all duration-500">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/add" element={<AddExpense />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/search" element={<SearchFilter />} />
+              <Route path="/settings" element={<SettingsProfile />} />
+            </Routes>
+          </div>
+        </main>
+        <Toaster position="top-center" />
       </div>
-    </div>
+    </Router>
+  );
+};
+
+export default function App() {
+  return (
+    <ExpenseProvider>
+      <AppContent />
+    </ExpenseProvider>
   );
 }

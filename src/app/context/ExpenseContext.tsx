@@ -144,8 +144,17 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
 
   const syncData = async () => {
     if (!syncUrl) return;
+    
+    // Warn about /dev URLs
+    if (syncUrl.endsWith('/dev')) {
+      toast.error('Sync failed: /dev URLs are not supported. Please use the /exec URL from a New Deployment.');
+      return;
+    }
+
     try {
-      const response = await fetch(syncUrl);
+      const response = await fetch(syncUrl, { redirect: 'follow' });
+      if (!response.ok) throw new Error('Network response was not ok');
+      
       const data = await response.json();
       if (Array.isArray(data)) {
         // Merge data, avoiding duplicates based on ID
@@ -155,11 +164,11 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
           // Sort by date descending
           return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
-        toast.success('Synced with Google Sheets');
+        toast.success('Synced with Cloud');
       }
     } catch (error) {
       console.error('Sync failed:', error);
-      toast.error('Failed to sync with cloud');
+      toast.error('Sync failed. Make sure your Deployment is set to "Anyone".');
     }
   };
 
@@ -176,11 +185,13 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
     setExpenses([newExpense, ...expenses]);
     toast.success('Expense added successfully');
 
-    if (syncUrl) {
+    if (syncUrl && !syncUrl.endsWith('/dev')) {
       try {
         await fetch(syncUrl, {
           method: 'POST',
+          mode: 'no-cors', // Google Apps Script POST often requires no-cors if not returning JSON headers
           body: JSON.stringify(newExpense),
+          redirect: 'follow'
         });
       } catch (error) {
         console.error('Remote sync failed:', error);

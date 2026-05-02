@@ -24,6 +24,8 @@ export function IntegrationGuide({ isOpen, onOpenChange, syncUrl }: IntegrationG
   const appsScriptCode = `function doGet() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  
   const headers = data[0];
   const json = data.slice(1).map(row => {
     const obj = {};
@@ -35,19 +37,24 @@ export function IntegrationGuide({ isOpen, onOpenChange, syncUrl }: IntegrationG
 }
 
 function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = JSON.parse(e.postData.contents);
-  sheet.appendRow([
-    data.id || Math.random().toString(36).substr(2, 9),
-    data.description,
-    data.amount,
-    data.category,
-    data.date || new Date().toISOString().split('T')[0],
-    data.paymentMethod || 'External',
-    data.notes || ""
-  ]);
-  return ContentService.createTextOutput("Success")
-    .setMimeType(ContentService.MimeType.TEXT);
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const data = JSON.parse(e.postData.contents);
+    sheet.appendRow([
+      data.id || Math.random().toString(36).substr(2, 9),
+      data.description,
+      data.amount,
+      data.category,
+      data.date || new Date().toISOString().split('T')[0],
+      data.paymentMethod || 'External',
+      data.notes || ""
+    ]);
+    return ContentService.createTextOutput("Success")
+      .setMimeType(ContentService.MimeType.TEXT);
+  } catch (err) {
+    return ContentService.createTextOutput("Error: " + err.message)
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
 }`;
 
   return (
@@ -91,7 +98,8 @@ function doPost(e) {
                     <li>Add headers in the first row: <code className="bg-white px-2 py-1 rounded-lg">id, description, amount, category, date, paymentMethod, notes</code></li>
                     <li>Go to <strong>Extensions &gt; Apps Script</strong>.</li>
                     <li>Paste the code below and click <strong>Deploy &gt; New Deployment</strong>.</li>
-                    <li>Choose <strong>Web App</strong>, set access to <strong>"Anyone"</strong>, and copy the URL.</li>
+                    <li>Choose <strong>Web App</strong>, set access to <strong>"Anyone"</strong>, and click <strong>Deploy</strong>.</li>
+                    <li><strong>IMPORTANT:</strong> Copy the URL ending in <code className="bg-primary/10 px-1 rounded">/exec</code>. Do NOT use URLs ending in <code className="bg-red-100 text-red-600 px-1 rounded">/dev</code> as they will fail to sync.</li>
                   </ol>
                 </div>
                 <div className="relative">

@@ -177,11 +177,12 @@ function doPost(e) {
                         <ul className="list-disc list-inside space-y-2">
                           <li>Action: <strong>Ask for Input</strong> (Amount)</li>
                           <li>Action: <strong>Ask for Input</strong> (Description)</li>
-                          <li>Action: <strong>URL</strong>:
-                            <code className="block mt-2 p-2 bg-white rounded-lg text-[9px] break-all">
-                              {window.location.origin}/add?amount=AMOUNT&desc=DESC&cat=1&auto=true
+                          <li>Action: <strong>URL</strong> (Use this template):
+                            <code className="block mt-2 p-2 bg-white rounded-lg text-[9px] break-all border border-primary/20">
+                              {window.location.origin}/add?amount=<strong>AMOUNT</strong>&desc=<strong>DESC</strong>&auto=true
                             </code>
                           </li>
+                          <li>Action: <strong>URL Encode</strong> (The DESC input)</li>
                           <li>Action: <strong>Open URL</strong></li>
                         </ul>
                       </div>

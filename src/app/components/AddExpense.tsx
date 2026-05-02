@@ -34,19 +34,19 @@ export function AddExpense() {
     if (pDesc) setDescription(pDesc);
     if (pCat) setCategory(pCat);
 
-    // If auto=true, save immediately if data is valid
-    if (pAuto === 'true' && pAmount && pDesc && pCat) {
+    // If auto=true, save immediately if at least amount and description are present
+    if (pAuto === 'true' && pAmount && pDesc) {
       const numAmount = parseFloat(pAmount);
       if (!isNaN(numAmount)) {
         addExpense({
           description: pDesc,
           amount: numAmount,
-          category: pCat,
+          category: pCat || categories[0]?.id || '1',
           date: date,
           paymentMethod: 'Shortcut'
         });
-        toast.success('Added via Shortcut!');
-        setTimeout(() => navigate('/'), 1000);
+        toast.success('Automatically Added!');
+        setTimeout(() => navigate('/'), 1200);
       }
     }
   }, [location.search, addExpense, navigate, date]);

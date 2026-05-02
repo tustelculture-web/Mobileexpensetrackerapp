@@ -34,6 +34,9 @@ type ExpenseContextType = {
   setCurrency: (c: 'USD' | 'IDR') => void;
   setLanguage: (l: 'en' | 'id') => void;
   setTheme: (t: 'light' | 'dark') => void;
+  syncUrl: string;
+  setSyncUrl: (url: string) => void;
+  syncData: () => Promise<void>;
   t: (key: string) => string;
   formatCurrency: (amount: number) => string;
 };
@@ -67,6 +70,8 @@ const translations = {
     theme: 'App Theme',
     welcome: 'Welcome back!',
     summary: 'Summary',
+    Search: 'Search',
+    search_results: 'Search Results',
   },
   id: {
     dashboard: 'Dasbor',
@@ -85,6 +90,8 @@ const translations = {
     theme: 'Tema Aplikasi',
     welcome: 'Selamat datang kembali!',
     summary: 'Ringkasan',
+    Search: 'Cari',
+    search_results: 'Hasil Pencarian',
   },
 };
 
@@ -120,6 +127,10 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
   });
 
+  const [syncUrl, setSyncUrl] = useState(() => {
+    return localStorage.getItem('syncUrl') || '';
+  });
+
   useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
     localStorage.setItem('categories', JSON.stringify(categories));
@@ -127,13 +138,54 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('currency', currency);
     localStorage.setItem('language', language);
     localStorage.setItem('theme', theme);
+    localStorage.setItem('syncUrl', syncUrl);
     document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [expenses, categories, budget, currency, language, theme]);
+  }, [expenses, categories, budget, currency, language, theme, syncUrl]);
 
-  const addExpense = (expense: Omit<Expense, 'id'>) => {
+  const syncData = async () => {
+    if (!syncUrl) return;
+    try {
+      const response = await fetch(syncUrl);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        // Merge data, avoiding duplicates based on ID
+        setExpenses(prev => {
+          const combined = [...data, ...prev];
+          const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+          // Sort by date descending
+          return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+        toast.success('Synced with Google Sheets');
+      }
+    } catch (error) {
+      console.error('Sync failed:', error);
+      toast.error('Failed to sync with cloud');
+    }
+  };
+
+  // Auto-sync polling every 30 seconds
+  useEffect(() => {
+    if (syncUrl) {
+      const interval = setInterval(syncData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [syncUrl]);
+
+  const addExpense = async (expense: Omit<Expense, 'id'>) => {
     const newExpense = { ...expense, id: Math.random().toString(36).substr(2, 9) };
     setExpenses([newExpense, ...expenses]);
     toast.success('Expense added successfully');
+
+    if (syncUrl) {
+      try {
+        await fetch(syncUrl, {
+          method: 'POST',
+          body: JSON.stringify(newExpense),
+        });
+      } catch (error) {
+        console.error('Remote sync failed:', error);
+      }
+    }
   };
 
   const deleteExpense = (id: string) => {
@@ -177,10 +229,10 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ExpenseContext.Provider value={{ 
-      expenses, categories, budget, currency, language, theme,
+      expenses, categories, budget, currency, language, theme, syncUrl,
       addExpense, deleteExpense, updateBudget,
       addCategory, updateCategory, deleteCategory,
-      setCurrency, setLanguage, setTheme, t, formatCurrency 
+      setCurrency, setLanguage, setTheme, setSyncUrl, syncData, t, formatCurrency 
     }}>
       {children}
     </ExpenseContext.Provider>

@@ -34,6 +34,8 @@ import {
 import { toast } from 'sonner';
 import { useExpenses, Category } from '../context/ExpenseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { IntegrationGuide } from './IntegrationGuide';
+import { RefreshCw, Link as LinkIcon } from 'lucide-react';
 
 export function SettingsProfile() {
   const { 
@@ -49,6 +51,9 @@ export function SettingsProfile() {
   const [userName, setUserName] = useState('John Doe');
   const [userEmail, setUserEmail] = useState('john.doe@example.com');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  
+  const { syncUrl, setSyncUrl, syncData } = useExpenses();
 
   // Category CRUD State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -110,14 +115,10 @@ export function SettingsProfile() {
     toast.success('Data exported as CSV successfully!');
   };
 
-  const handleGoogleSheetsSync = () => {
+  const handleGoogleSheetsSync = async () => {
     setIsSyncing(true);
-    toast.loading('Syncing with Google Sheets...');
-    setTimeout(() => {
-      setIsSyncing(false);
-      toast.dismiss();
-      toast.success('Data integrated with Google Sheets!');
-    }, 2000);
+    await syncData();
+    setIsSyncing(false);
   };
 
   return (
@@ -165,19 +166,38 @@ export function SettingsProfile() {
                     <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center">
                       <Table className="h-6 w-6 text-green-500" />
                     </div>
-                    <div>
-                      <p className="font-bold text-lg">Google Sheets Sync</p>
-                      <p className="text-xs text-muted-foreground font-medium">Automatic cloud integration</p>
+                    <div className="flex-1">
+                      <p className="font-bold text-lg">Cloud Synchronization</p>
+                      <p className="text-xs text-muted-foreground font-medium">Auto-update with Shortcut & Telegram</p>
+                      <Input 
+                        placeholder="Paste your Web App URL here..."
+                        value={syncUrl}
+                        onChange={(e) => setSyncUrl(e.target.value)}
+                        className="mt-3 h-10 rounded-xl bg-white/50 border-none text-xs font-mono"
+                      />
                     </div>
                   </div>
-                  <Badge className="bg-green-500 text-white border-none rounded-lg font-bold">Connected</Badge>
+                  <Badge className={`${syncUrl ? 'bg-green-500' : 'bg-slate-400'} text-white border-none rounded-lg font-bold`}>
+                    {syncUrl ? 'Connected' : 'Offline'}
+                  </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button onClick={handleGoogleSheetsSync} disabled={isSyncing} className="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-2">
-                    <Cloud className="h-4 w-4" />
-                    Sync Data
+                  <Button 
+                    onClick={handleGoogleSheetsSync} 
+                    disabled={isSyncing || !syncUrl} 
+                    className="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    Sync Now
                   </Button>
-                  <Button variant="outline" className="h-12 rounded-xl border-border/50 font-bold">Disconnect</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsGuideOpen(true)}
+                    className="h-12 rounded-xl border-border/50 font-bold flex items-center gap-2"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    Setup Guide
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -318,6 +338,12 @@ export function SettingsProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <IntegrationGuide 
+        isOpen={isGuideOpen} 
+        onOpenChange={setIsGuideOpen} 
+        syncUrl={syncUrl} 
+      />
     </div>
   );
 }

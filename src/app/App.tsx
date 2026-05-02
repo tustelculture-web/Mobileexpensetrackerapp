@@ -15,7 +15,7 @@ const Navigation = () => {
     { icon: <LayoutDashboard className="h-5 w-5" />, label: t('dashboard'), path: '/' },
     { icon: <PlusCircle className="h-5 w-5" />, label: t('add_expense'), path: '/add' },
     { icon: <BarChart3 className="h-5 w-5" />, label: t('analytics'), path: '/analytics' },
-    { icon: <Search className="h-5 w-5" />, label: t('search'), path: '/search' },
+    { icon: <Search className="h-5 w-5" />, label: t('Search'), path: '/search' },
     { icon: <Settings className="h-5 w-5" />, label: t('settings'), path: '/settings' },
   ];
 
@@ -49,13 +49,6 @@ const Navigation = () => {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto p-4 bg-accent/50 rounded-2xl border border-border/50">
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">PRO PLAN</p>
-          <p className="text-sm font-bold mb-3">Unlimited Insights</p>
-          <button className="w-full py-2 bg-primary text-white rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">
-            Upgrade
-          </button>
-        </div>
       </aside>
 
       {/* Mobile Bottom Navigation */}

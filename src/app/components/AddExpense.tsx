@@ -1,196 +1,193 @@
-import React, { useState } from 'react';
-import { Card, CardContent } from './ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Calendar } from './ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon, Camera, Sparkles, DollarSign, ArrowLeft, Zap, Check } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useExpenses } from '../context/ExpenseContext';
-import { useNavigate } from 'react-router-dom';
-
-const paymentMethods = [
-  { id: 'credit', name: 'Credit Card', icon: '💳' },
-  { id: 'debit', name: 'Debit Card', icon: '💳' },
-  { id: 'cash', name: 'Cash', icon: '💵' },
-  { id: 'digital', name: 'Digital Wallet', icon: '📱' }
-];
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Save, Sparkles, Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
+import { IntegrationGuide } from './IntegrationGuide';
 
 export function AddExpense() {
-  const { addExpense, categories, currency, t } = useExpenses();
+  const { categories, addExpense, formatCurrency, t, currency, syncUrl } = useExpenses();
   const navigate = useNavigate();
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const location = useLocation();
 
-  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('credit');
-  const [date, setDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState('');
-  const [isDateOpen, setIsDateOpen] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentMethod, setPaymentMethod] = useState('Credit');
 
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    const val = value.toLowerCase();
-    if (val.includes('coffee') || val.includes('restaurant') || val.includes('food')) setAiSuggestion('food');
-    else if (val.includes('uber') || val.includes('gas') || val.includes('transport')) setAiSuggestion('transport');
-    else if (val.includes('netflix') || val.includes('bill')) setAiSuggestion('bills');
-    else if (val.includes('shopping')) setAiSuggestion('shopping');
-    else setAiSuggestion(null);
-  };
+  // URL Parameter Handling for iOS Shortcuts
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pAmount = params.get('amount');
+    const pDesc = params.get('desc');
+    const pCat = params.get('cat');
+    const pAuto = params.get('auto');
 
-  const handleScanReceipt = () => {
-    toast.success('Receipt scanned!');
-    setAmount('23.45');
-    setDescription('Target Store');
-    setSelectedCategory('shopping');
-  };
+    if (pAmount) setAmount(pAmount);
+    if (pDesc) setDescription(pDesc);
+    if (pCat) setCategory(pCat);
+
+    // If auto=true, save immediately if data is valid
+    if (pAuto === 'true' && pAmount && pDesc && pCat) {
+      const numAmount = parseFloat(pAmount);
+      if (!isNaN(numAmount)) {
+        addExpense({
+          description: pDesc,
+          amount: numAmount,
+          category: pCat,
+          date: date,
+          paymentMethod: 'Shortcut'
+        });
+        toast.success('Added via Shortcut!');
+        setTimeout(() => navigate('/'), 1000);
+      }
+    }
+  }, [location.search, addExpense, navigate, date]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description || !selectedCategory) {
-      toast.error('Fill required fields.');
+    if (!description || !amount || !category) {
+      toast.error('Please fill all required fields');
       return;
     }
     addExpense({
-      amount: parseFloat(amount),
       description,
-      category: selectedCategory,
+      amount: parseFloat(amount),
+      category,
+      date,
       paymentMethod,
-      date: format(date, 'yyyy-MM-dd'),
-      notes
     });
-    toast.success('Expense added!');
     navigate('/');
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto space-y-8">
+    <div className="p-6 md:p-10 max-w-2xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-3xl font-bold">{t('add_expense')}</h1>
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3 space-y-6">
+      <Card className="rounded-[2.5rem] border border-border/50 bg-card shadow-2xl overflow-hidden">
+        <CardHeader className="bg-primary/5 border-b border-border/50 p-8">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              New Transaction
+            </CardTitle>
+            <div className="px-4 py-2 bg-primary/10 rounded-xl text-primary font-black text-sm">
+              {currency === 'USD' ? '$' : 'Rp'}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Card className="bg-accent/10 border-border/50 rounded-[2rem]">
-              <CardContent className="p-6">
-                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 block">
-                  {t('description')}
-                </Label>
-                <Input
-                  placeholder="e.g. Starbucks"
-                  value={description}
-                  onChange={(e) => handleDescriptionChange(e.target.value)}
-                  className="h-12 text-lg font-bold bg-background border-border"
-                  required
-                />
-                {aiSuggestion && (
-                  <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-bold">{t('category')} Suggestion: {categories.find(c => c.id === aiSuggestion)?.name}</span>
-                    </div>
-                    <Button type="button" size="sm" onClick={() => setSelectedCategory(aiSuggestion)} className="h-7 text-[10px] font-bold">Apply</Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-accent/10 border-border/50 rounded-[2rem]">
-              <CardContent className="p-6">
-                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 block">
-                  {t('category')}
-                </Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
-                        selectedCategory === cat.id ? 'border-primary bg-primary/5' : 'border-transparent bg-background/50'
-                      }`}
-                    >
-                      <span className="text-xl mb-1">{cat.icon}</span>
-                      <span className="text-[9px] font-bold uppercase truncate w-full text-center">{cat.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-               <Card className="bg-accent/10 border-border/50 rounded-[2rem]">
-                <CardContent className="p-6">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 block">{t('date')}</Label>
-                  <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-start font-bold rounded-xl bg-background">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {format(date, 'MMM dd, yyyy')}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={date} onSelect={(d) => d && (setDate(d), setIsDateOpen(false))} />
-                    </PopoverContent>
-                  </Popover>
-                </CardContent>
-              </Card>
-              <Card className="bg-accent/10 border-border/50 rounded-[2rem]">
-                <CardContent className="p-6">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 block">{t('payment')}</Label>
-                  <div className="grid grid-cols-2 gap-1">
-                    {paymentMethods.slice(0, 4).map(m => (
-                      <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)} className={`py-1.5 rounded-lg border text-[9px] font-bold uppercase transition-all ${paymentMethod === m.id ? 'bg-primary text-white border-primary' : 'bg-background text-muted-foreground border-border'}`}>{m.name}</button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1">What did you buy?</Label>
+              <Input
+                placeholder="Dinner with friends..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="h-14 rounded-2xl bg-accent/20 border-none text-lg font-bold placeholder:opacity-30 focus-visible:ring-primary/20"
+              />
             </div>
 
-            <Button type="submit" className="w-full h-16 text-lg font-black rounded-2xl bg-primary hover:opacity-90 shadow-xl shadow-primary/20">
-              {t('confirm')}
-            </Button>
-          </form>
-        </div>
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Amount</Label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-muted-foreground">
+                    {currency === 'USD' ? '$' : 'Rp'}
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="h-14 rounded-2xl bg-accent/20 border-none pl-12 text-lg font-black focus-visible:ring-primary/20"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-accent/20 border-none font-bold focus:ring-primary/20">
+                    <SelectValue placeholder="Choose category" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-border/50 shadow-2xl">
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id} className="rounded-xl font-bold py-3">
+                        <span className="mr-2">{cat.icon}</span> {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-        <div className="lg:col-span-2 space-y-6 order-first lg:order-last">
-          <Card className="bg-primary text-white rounded-[2rem] border-none shadow-xl overflow-hidden relative">
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-            <CardContent className="p-8">
-              <Label className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-4 block">{t('amount')}</Label>
-              <div className="relative flex items-center justify-end">
-                <span className="absolute left-0 text-3xl font-black text-white/30">{currency === 'USD' ? '$' : 'Rp'}</span>
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Date</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="bg-transparent border-none text-6xl h-20 font-black text-white placeholder:text-white/20 text-right focus-visible:ring-0"
-                  required
-                  autoFocus
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="h-14 rounded-2xl bg-accent/20 border-none font-bold focus-visible:ring-primary/20"
                 />
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-accent/20 border-none font-bold focus:ring-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-border/50 shadow-2xl">
+                    <SelectItem value="Credit" className="rounded-xl font-bold">Credit Card</SelectItem>
+                    <SelectItem value="Debit" className="rounded-xl font-bold">Debit Card</SelectItem>
+                    <SelectItem value="Cash" className="rounded-xl font-bold">Cash</SelectItem>
+                    <SelectItem value="Digital" className="rounded-xl font-bold">Digital Wallet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-          <Card className="border-dashed border-2 border-muted hover:border-primary/50 bg-accent/5 rounded-[2rem] transition-all cursor-pointer group" onClick={handleScanReceipt}>
-            <CardContent className="p-10 text-center">
-              <Camera className="h-10 w-10 mx-auto mb-4 text-primary group-hover:scale-110 transition-transform" />
-              <h3 className="font-bold text-lg mb-1">Smart Scan</h3>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider leading-relaxed px-4">Extract from receipt using AI</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            <div className="pt-4 flex gap-4">
+              <Button type="submit" className="flex-1 h-16 rounded-2xl bg-primary text-lg font-black shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
+                <Save className="h-6 w-6" />
+                {t('add_expense')}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsGuideOpen(true)}
+                className="h-16 w-16 rounded-2xl border-border/50 flex flex-col items-center justify-center gap-1 hover:bg-primary/5 hover:text-primary transition-colors"
+              >
+                <Smartphone className="h-5 w-5 opacity-50" />
+                <span className="text-[8px] font-black uppercase">iOS</span>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <IntegrationGuide 
+        isOpen={isGuideOpen} 
+        onOpenChange={setIsGuideOpen} 
+        syncUrl={syncUrl} 
+      />
+
+      <p className="text-center text-xs font-bold text-muted-foreground opacity-50 uppercase tracking-[0.2em]">
+        Safe & Secure • Local Storage
+      </p>
     </div>
   );
 }

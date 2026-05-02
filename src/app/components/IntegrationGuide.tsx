@@ -132,16 +132,63 @@ function doPost(e) {
                     Please set your Sync URL in Settings first to generate shortcut steps.
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="bg-accent/10 p-6 rounded-3xl space-y-4 border border-border/50">
-                      <p className="font-bold text-sm">Shortcut Setup Steps:</p>
-                      <ul className="list-disc list-inside space-y-2 text-sm font-medium">
-                        <li>Action: <strong>Ask for Input</strong> (Number) for Amount.</li>
-                        <li>Action: <strong>Ask for Input</strong> (Text) for Description.</li>
-                        <li>Action: <strong>Dictionary</strong> (amount: Input, description: Input, category: "1", date: Current Date).</li>
-                        <li>Action: <strong>Get Contents of URL</strong> (Method: POST, URL: Your Sync URL).</li>
-                      </ul>
+                <>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20">
+                        <p className="font-bold text-sm flex items-center gap-2">
+                          <Check className="h-4 w-4 text-primary" />
+                          Method A: Silent Background
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Updates Google Sheets without opening the app.</p>
+                      </div>
+                      <div className="bg-accent/10 p-5 rounded-2xl space-y-3 border border-border/50 text-[11px] font-medium leading-relaxed">
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Action: <strong>Ask for Input</strong> (Amount)</li>
+                          <li>Action: <strong>Ask for Input</strong> (Description)</li>
+                          <li>Action: <strong>Dictionary</strong>:
+                            <ul className="ml-4 mt-1 opacity-70">
+                              <li>- amount: (Input)</li>
+                              <li>- description: (Input)</li>
+                              <li>- category: "1" (Food)</li>
+                              <li>- paymentMethod: "Shortcut"</li>
+                            </ul>
+                          </li>
+                          <li>Action: <strong>Get Contents of URL</strong>
+                            <ul className="ml-4 mt-1 opacity-70">
+                              <li>- URL: Your Sync URL</li>
+                              <li>- Method: POST</li>
+                              <li>- Body: JSON (Dictionary)</li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </div>
                     </div>
+
+                    <div className="space-y-4">
+                      <div className="p-4 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                        <p className="font-bold text-sm flex items-center gap-2">
+                          <Smartphone className="h-4 w-4 text-blue-500" />
+                          Method B: Instant In-App
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Opens the app and adds it to UI immediately.</p>
+                      </div>
+                      <div className="bg-accent/10 p-5 rounded-2xl space-y-3 border border-border/50 text-[11px] font-medium leading-relaxed">
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Action: <strong>Ask for Input</strong> (Amount)</li>
+                          <li>Action: <strong>Ask for Input</strong> (Description)</li>
+                          <li>Action: <strong>URL</strong>:
+                            <code className="block mt-2 p-2 bg-white rounded-lg text-[9px] break-all">
+                              {window.location.origin}/add?amount=AMOUNT&desc=DESC&cat=1&auto=true
+                            </code>
+                          </li>
+                          <li>Action: <strong>Open URL</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
                     <Button 
                       onClick={() => copyToClipboard(syncUrl, 'url')}
                       className="w-full h-14 rounded-2xl bg-primary text-white font-black flex items-center justify-center gap-3 shadow-lg shadow-primary/20"
@@ -150,6 +197,7 @@ function doPost(e) {
                       Copy Your Sync URL
                     </Button>
                   </div>
+                </>
                 )}
               </div>
             </TabsContent>

@@ -36,7 +36,7 @@ type ExpenseContextType = {
   setTheme: (t: 'light' | 'dark') => void;
   syncUrl: string;
   setSyncUrl: (url: string) => void;
-  syncData: () => Promise<void>;
+  syncData: (silent?: boolean) => Promise<void>;
   t: (key: string) => string;
   formatCurrency: (amount: number) => string;
 };
@@ -142,12 +142,12 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [expenses, categories, budget, currency, language, theme, syncUrl]);
 
-  const syncData = async () => {
+  const syncData = async (silent: boolean = false) => {
     if (!syncUrl) return;
     
-    // Warn about /dev URLs
+    // Warn about /dev URLs (only if not silent)
     if (syncUrl.endsWith('/dev')) {
-      toast.error('Sync failed: /dev URLs are not supported. Please use the /exec URL from a New Deployment.');
+      if (!silent) toast.error('Sync failed: /dev URLs are not supported. Please use the /exec URL from a New Deployment.');
       return;
     }
 
@@ -164,18 +164,21 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
           // Sort by date descending
           return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
-        toast.success('Synced with Cloud');
+        if (!silent) toast.success('Synced with Cloud');
       }
     } catch (error) {
       console.error('Sync failed:', error);
-      toast.error('Sync failed. Make sure your Deployment is set to "Anyone".');
+      if (!silent) toast.error('Sync failed. Make sure your Deployment is set to "Anyone".');
     }
   };
 
-  // Auto-sync polling every 30 seconds
+  // Auto-sync polling every 15 seconds (silently)
   useEffect(() => {
     if (syncUrl) {
-      const interval = setInterval(syncData, 30000);
+      // Initial sync on mount or URL change (visible)
+      syncData(true); 
+      
+      const interval = setInterval(() => syncData(true), 15000);
       return () => clearInterval(interval);
     }
   }, [syncUrl]);
